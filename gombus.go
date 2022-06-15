@@ -1,44 +1,14 @@
 package gombus
 
-type Frame []byte
-
-type ShortFrame Frame
-
-func (cf ShortFrame) Checksum() {
-	size := len(cf)
-	cf[size-2] = calcCheckSum(cf[1 : size-2])
-}
-
-type ControlFrame Frame
-
-func (cf ControlFrame) Checksum() {
-	size := len(cf)
-	cf[size-2] = calcCheckSum(cf[4 : size-2])
-}
-
-func (cf ControlFrame) Length() {
-	cf[1] = byte(len(cf) - 6)
-	cf[2] = byte(len(cf) - 6)
-}
-
-type LongFrame ControlFrame
-
-func NewShortFrame() ShortFrame {
-	return ShortFrame{
-		0x10, // Start byte short frame
-		0x7b, // C field
-		0x00, // A field
-		0x00, // checksum
-		0x16, // stop byte
-	}
-}
-
-const SingleCharacterFrame = 0xe5
+import (
+	"encoding/binary"
+	"fmt"
+)
 
 func RequestUD2(primaryID uint8) ShortFrame {
 	data := NewShortFrame()
 	data[2] = primaryID
-	data.Checksum()
+	data.SetChecksum()
 	return data
 }
 
@@ -75,8 +45,8 @@ func SendUD2() Frame {
 	return data
 }
 
-func SetPrimaryUsingSecondary(secondary uint64, primary uint8) ControlFrame {
-	data := ControlFrame{
+func SetPrimaryUsingSecondary(secondary uint64, primary uint8) LongFrame {
+	data := LongFrame{
 		0x68, // Start byte long/control
 		0x00, // length
 		0x00, // length
@@ -106,12 +76,12 @@ func SetPrimaryUsingSecondary(secondary uint64, primary uint8) ControlFrame {
 	data[10] = a[3]
 
 	data.Length()
-	data.Checksum()
+	data.SetChecksum()
 	return data
 }
 
-func SetPrimaryUsingPrimary(oldPrimary uint8, newPrimary uint8) ControlFrame {
-	data := ControlFrame{
+func SetPrimaryUsingPrimary(oldPrimary uint8, newPrimary uint8) LongFrame {
+	data := LongFrame{
 		0x68, // Start byte long/control
 		0x06, // length
 		0x06, // length
@@ -127,7 +97,7 @@ func SetPrimaryUsingPrimary(oldPrimary uint8, newPrimary uint8) ControlFrame {
 	}
 
 	data.Length()
-	data.Checksum()
+	data.SetChecksum()
 	return data
 }
 
@@ -152,3 +122,51 @@ func UintToBCD(value uint64, size int) []byte {
 	}
 	return buf
 }
+
+func BCDToInt(bcd []byte) int {
+	var i = 0
+	size := len(bcd)
+	for k := range bcd {
+		r0 := bcd[size-1-k] & 0xf
+		r1 := bcd[size-1-k] >> 4 & 0xf
+		r := r1*10 + r0
+		i = i*100 + int(r)
+	}
+	return i
+}
+
+// if data fields is 0100 == 32 bit integer.
+func Int32ToInt(data []byte) (int, error) {
+	if len(data) != 4 {
+		return 0.0, fmt.Errorf("wrong data length")
+	}
+	i := binary.LittleEndian.Uint32(data)
+	return int(i), nil
+}
+
+func Int24ToInt(b []byte) int {
+	_ = b[2] // bounds check hint to compiler; see golang.org/issue/14808
+	return int(uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16)
+}
+
+func CheckKthBitSet(n, k int) bool {
+	if n&(1<<(k)) == 0 {
+		return false
+	}
+	return true
+}
+
+/*
+
+func AsRoundedFloat(data []byte) (float64, error) {
+	// this works OK according to protocol example:
+	// Extract temperature 21,8
+	// 0000   3d 05 00 d3 5e ae 41 67 3e
+	if len(data) != 4 {
+		return 0.0, fmt.Errorf("could not pase float from binary")
+	}
+	bits := binary.LittleEndian.Uint32(data)
+	float := float64(math.Float32frombits(bits))
+	return math.Round(float*100) / 100, nil
+}
+*/

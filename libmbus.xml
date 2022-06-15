@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<MBusData>
+
+    <SlaveInformation>
+        <Id>90072114</Id>
+        <Manufacturer>GAV</Manufacturer>
+        <Version>199</Version>
+        <ProductName></ProductName>
+        <Medium>Electricity</Medium>
+        <AccessNumber>62</AccessNumber>
+        <Status>00</Status>
+        <Signature>0000</Signature>
+    </SlaveInformation>
+
+    <DataRecord id="0">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>5</Device>
+        <Unit>1e-1  V</Unit>
+        <Value>4017</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="1">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>6</Device>
+        <Unit>1e-1  V</Unit>
+        <Value>4049</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="2">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>7</Device>
+        <Unit>1e-1  V</Unit>
+        <Value>4027</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="3">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>1</Device>
+        <Unit>1e-1  V</Unit>
+        <Value>2330</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="4">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>2</Device>
+        <Unit>1e-1  V</Unit>
+        <Value>2333</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="5">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>3</Device>
+        <Unit>1e-1  V</Unit>
+        <Value>2320</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="6">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>4</Device>
+        <Unit>Energy (100 Wh)</Unit>
+        <Value>78127</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="7">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>4</Device>
+        <Unit>Reserved (0x82)</Unit>
+        <Value>37186</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="8">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>5</Device>
+        <Unit>Energy (100 Wh)</Unit>
+        <Value>0</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="9">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Tariff>0</Tariff>
+        <Device>5</Device>
+        <Unit>Reserved (0x82)</Unit>
+        <Value>0</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="10">
+        <Function>Instantaneous value</Function>
+        <StorageNumber>0</StorageNumber>
+        <Unit>Reserved (0x2e)</Unit>
+        <Value>500</Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+    <DataRecord id="11">
+        <Function>More records follow</Function>
+        <Value></Value>
+        <Timestamp>2022-06-15T11:14:09Z</Timestamp>
+    </DataRecord>
+
+</MBusData>
