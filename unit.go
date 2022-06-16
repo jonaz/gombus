@@ -164,6 +164,10 @@ type VIF struct {
 	VIFUnitDesc string
 }
 
+func (vif VIF) Value(v float64) float64 {
+	return v * vif.Exp
+}
+
 var VIFTable = map[int]VIF{
 	// E000 0nnn    Energy Wh (0.001Wh to 10000Wh)
 	0x00: {Exp: 1.0e-3, Unit: MeasureUnit["WH"], Type: VIFUnit["ENERGY_WH"]},

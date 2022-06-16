@@ -7,7 +7,35 @@ import (
 
 func RequestUD2(primaryID uint8) ShortFrame {
 	data := NewShortFrame()
+	data[1] = 0x7b
 	data[2] = primaryID
+	data.SetChecksum()
+	return data
+}
+
+// SndNKE slave will ack with SingleCharacterFrame (e5).
+func SndNKE(primaryID uint8) ShortFrame {
+	data := NewShortFrame()
+	data[1] = 0x40
+	data[2] = primaryID
+	data.SetChecksum()
+	return data
+}
+
+func ApplicationReset(primaryID uint8) LongFrame {
+	data := LongFrame{
+		0x68, // Start byte long/control
+		0x06, // length
+		0x06, // length
+		0x68, // Start byte long/control
+		0x73, // SND_UD
+		primaryID,
+		0x50, // CI field data send
+		0x00, // checksum
+		0x16, // stop byte
+	}
+
+	data.Length()
 	data.SetChecksum()
 	return data
 }
@@ -51,7 +79,7 @@ func SetPrimaryUsingSecondary(secondary uint64, primary uint8) LongFrame {
 		0x00, // length
 		0x00, // length
 		0x68, // Start byte long/control
-		0x73, // REQ_UD2
+		0x73, // SND_UD
 		0xFD,
 		0x51, // CI field data send
 		0x00, // address

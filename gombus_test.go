@@ -3,11 +3,19 @@ package gombus
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	// call flag.Parse() here if TestMain uses flags
+	logrus.SetLevel(logrus.DebugLevel)
+	os.Exit(m.Run())
+}
 
 func TestToBCD(t *testing.T) {
 	// facit: 78 56 34 12 identification number = 12345678
@@ -41,7 +49,7 @@ func TestPrimaryUsingPrimary(t *testing.T) {
 	s := fmt.Sprintf("% x", data)
 	assert.Equal(t, "68 06 06 68 73 00 51 01 7a 03 42 16", s)
 }
-func TestDecodeLongFrame(t *testing.T) {
+func TestDecodeLongFrameGAROSecondFrame(t *testing.T) {
 	// Response from garo electric meter
 	s := `
 		68 78 78 68 
@@ -109,6 +117,22 @@ func TestDecodeLongFrame(t *testing.T) {
 	s = strings.ReplaceAll(s, " ", "")
 	s = strings.ReplaceAll(s, "\n", "")
 	s = strings.ReplaceAll(s, "\t", "")
+	data, err := hex.DecodeString(s)
+	assert.NoError(t, err)
+
+	frame := LongFrame(data)
+
+	fmt.Println(frame)
+	dFrame, err := frame.Decode()
+	assert.NoError(t, err)
+	assert.Equal(t, 90072114, dFrame.SerialNumber)
+
+	// fmt.Printf("%#v\n", dFrame)
+	// spew.Dump(dFrame)
+}
+func TestDecodeLongFrameGAROFirstFrame(t *testing.T) {
+	s := `68 65 65 68 08 01 72 14 21 07 90 36 1c c7 02 4d 00 00 00 04 05 9c 31 01 00 04 fb 82 75 63 91 00 00 04 2a 36 08 00 00 04 fb 97 72 ca fe ff ff 04 fb b7 72 6d 08 00 00 02 fd ba 73 dc 03 84 80 80 40 fd 48 c4 0f 00 00 04 fd 48 1a 09 00 00 84 40 fd 59 d2 04 00 00 84 80 40 fd 59 78 00 00 00 84 c0 40 fd 59 00 00 00 00 1f 95 16`
+	s = strings.ReplaceAll(s, " ", "")
 	data, err := hex.DecodeString(s)
 	assert.NoError(t, err)
 

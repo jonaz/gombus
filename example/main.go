@@ -1,14 +1,18 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jonaz/gombus"
 	"github.com/sirupsen/logrus"
 )
 
+var primaryID = flag.Int("id", 1, "primaryID to fetch data from")
+
 func main() {
-	// gombus.SendUD2(nil)
+	flag.Parse()
 
 	conn, err := gombus.Dial("192.168.13.42:10001")
 	if err != nil {
@@ -18,7 +22,7 @@ func main() {
 	defer conn.Close()
 
 	// frame := gombus.SetPrimaryUsingPrimary(0, 3)
-	frame := gombus.RequestUD2(1)
+	frame := gombus.RequestUD2(uint8(*primaryID))
 	fmt.Printf("sending: % x\n", frame)
 	n, err := conn.Write(frame)
 	if err != nil {
@@ -34,4 +38,12 @@ func main() {
 	}
 
 	fmt.Printf("read: % x\n", resp)
+
+	respFrame, err := resp.Decode()
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	spew.Dump(respFrame)
 }

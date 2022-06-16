@@ -3,6 +3,8 @@ package gombus
 import (
 	"fmt"
 	"math"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -170,10 +172,12 @@ func DeviceTypeLookup(deviceType byte) (string, error) {
 func DecodeUnit(vif byte, vife []byte) VIF {
 	var code int
 
+	logrus.Debugf("vif raw is: % x\n", vif)
+	logrus.Debugf("vife raw is: % x\n", vife)
 	if vif == 0xFB {
-		code = int(vife[1])&DIB_VIF_WITHOUT_EXTENSION | 0x200
+		code = int(vife[0])&DIB_VIF_WITHOUT_EXTENSION | 0x200
 	} else if vif == 0xFD {
-		code = int(vife[1])&DIB_VIF_WITHOUT_EXTENSION | 0x100
+		code = int(vife[0])&DIB_VIF_WITHOUT_EXTENSION | 0x100
 	} else if vif == 0x7C {
 		// var unit string
 		// DecodeASCII(vib.Custom, &unit)
@@ -185,11 +189,6 @@ func DecodeUnit(vif byte, vife []byte) VIF {
 			VIFUnitDesc: "",
 		}
 	} else if vif == 0xFC {
-		//  && (vib->vife[0] & 0x78) == 0x70
-
-		// Disable this for now as it is implicit
-		// from 0xFC
-		// if vif & vtf_ebm {}
 		code := vife[0] & DIB_VIF_WITHOUT_EXTENSION
 		var factor float64
 
@@ -198,8 +197,7 @@ func DecodeUnit(vif byte, vife []byte) VIF {
 		} else if 0x78 <= code && code <= 0x7B {
 			factor = math.Pow10((int(vife[0]) & 0x03) - 3)
 		} else if code == 0x7D {
-			// A bit unnecessary
-			factor = 1
+			factor = 1000
 		}
 
 		return VIF{
@@ -212,8 +210,46 @@ func DecodeUnit(vif byte, vife []byte) VIF {
 		code = int(vif) & DIB_VIF_WITHOUT_EXTENSION
 	}
 
-	fmt.Printf("vife raw is: % x\n", vife)
-	fmt.Printf("vif raw is: % x\n", vif)
-	fmt.Printf("vif code is: % x\n", code)
+	logrus.Debugf("vif code is: % x\n", code)
 	return VIFTable[code]
+}
+func DecodeStorageNumber(dif int, dife []byte) int {
+	bitIndex := 0
+	result := 0
+
+	result |= dif & DATA_RECORD_DIF_MASK_STORAGE_NO >> 6
+	bitIndex++
+
+	size := len(dife)
+	for i := 0; i < size; i++ {
+		result |= int(dife[i]&DATA_RECORD_DIFE_MASK_STORAGE_NO) << bitIndex
+		bitIndex += 4
+	}
+
+	return result
+}
+
+func DecodeTariff(dif int, dife []byte) int {
+	bitIndex := 0
+	result := 0
+	size := len(dife)
+	for i := 0; i < size; i++ {
+		result |= int(dife[i]&DATA_RECORD_DIFE_MASK_TARIFF>>4) << bitIndex
+		bitIndex += 2
+	}
+
+	return result
+}
+
+func DecodeDevice(dif int, dife []byte) int {
+	bitIndex := 0
+	result := 0
+
+	size := len(dife)
+	for i := 0; i < size; i++ {
+		result |= int(dife[i]&DATA_RECORD_DIFE_MASK_DEVICE>>6) << bitIndex
+		bitIndex++
+	}
+
+	return result
 }
