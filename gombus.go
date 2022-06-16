@@ -7,7 +7,7 @@ import (
 
 func RequestUD2(primaryID uint8) ShortFrame {
 	data := NewShortFrame()
-	data[1] = 0x7b
+	data[1] = 0x5b
 	data[2] = primaryID
 	data.SetChecksum()
 	return data

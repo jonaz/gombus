@@ -21,16 +21,30 @@ func main() {
 	}
 	defer conn.Close()
 
+	/*
+		frame := gombus.SndNKE(uint8(*primaryID))
+		fmt.Printf("sending nke: % x\n", frame)
+		_, err = conn.Write(frame)
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+		_, err = gombus.ReadSingleCharFrame(conn)
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+	*/
+
 	// frame := gombus.SetPrimaryUsingPrimary(0, 3)
 	frame := gombus.RequestUD2(uint8(*primaryID))
 	fmt.Printf("sending: % x\n", frame)
-	n, err := conn.Write(frame)
+	_, err = conn.Write(frame)
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
 
-	logrus.Info("wrote n: ", n)
 	resp, err := gombus.ReadLongFrame(conn)
 	if err != nil {
 		logrus.Error(err)
