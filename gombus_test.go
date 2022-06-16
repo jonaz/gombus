@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,8 +120,7 @@ func TestDecodeLongFrame(t *testing.T) {
 	assert.Equal(t, 90072114, dFrame.SerialNumber)
 
 	// fmt.Printf("%#v\n", dFrame)
-	spew.Dump(dFrame)
-	fmt.Println(Int32ToInt([]byte{0xa0, 0x09, 0x0, 0x0}))
+	// spew.Dump(dFrame)
 }
 
 func TestInt24ToInt(t *testing.T) {

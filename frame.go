@@ -96,26 +96,32 @@ func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 	lookForDIFE := false
 	lookForVIF := false
 	lookForVIFE := false
+	remainingData := 0
+	var vife []byte
+	var vif byte
 	for i, v := range data {
+		if remainingData > 0 {
+			remainingData--
+			continue
+		}
 		// expect first one is a DIF
 		if dif == -1 {
 			dData = DecodedDataRecord{}
 			dif = int(v)
 			dData.Function = DecodeRecordFunction(v)
-
+			fmt.Printf("dif is: % x\n", dif)
 			if CheckKthBitSet(int(v), 7) {
 				lookForDIFE = true
+				continue
 			}
-
 			lookForVIF = true
-
 			continue
 		}
 		if lookForDIFE { // has another DIFE{
 			// dife = int(v)
 			// TODO read device, tariff and StorageNumber
 			if CheckKthBitSet(int(v), 7) {
-				lookForDIFE = true
+				// lookForDIFE = true
 				continue
 			}
 			lookForDIFE = false
@@ -125,6 +131,7 @@ func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 
 		// E111 1100 7 bits data
 		if lookForVIF {
+			vif = v
 			if CheckKthBitSet(int(v), 7) {
 				lookForVIF = false
 				lookForVIFE = true
@@ -135,8 +142,9 @@ func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			continue
 		}
 		if lookForVIFE {
+			vife = append(vife, v)
 			if CheckKthBitSet(int(v), 7) {
-				lookForVIFE = true
+				// lookForVIFE = true
 				continue
 			}
 			lookForVIFE = false
@@ -145,20 +153,95 @@ func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 		}
 
 		if lookForData {
+			fmt.Printf("unit: %#v\n", DecodeUnit(vif, vife))
 			switch dif & DATA_RECORD_DIF_MASK_DATA {
+			// 0000	No data
+			case 0x00:
+				remainingData = 0
+
+			// 0001	8 Bit Integer
+			case 0x01:
+				remainingData = 0
+				dData.RawValue = float64(data[i])
+				fmt.Printf("data dif 0x01 is: % x\n", data[i])
+
+			// 0010	16 Bit Integer
+			case 0x02:
+				remainingData = 1
+				dData.RawValue = float64(binary.LittleEndian.Uint16(cf[11:13]))
+				fmt.Printf("data dif 0x02 is: % x\n", data[i:i+4])
+
+			// 0011	24 Bit Integer
+			case 0x03:
+				remainingData = 2
+
 			// 4 byte (32 bit)
 			case 0x04:
-				fmt.Printf("0x04 is: % x\n", data[i:i+4])
+				remainingData = 3
+				fmt.Printf("data dif 0x04 is: % x\n", data[i:i+4])
 				v, err := Int32ToInt(data[i : i+4])
 				if err != nil {
 					return nil, err
 				}
 
 				dData.RawValue = float64(v)
+
+			// 0101	32 Bit Real
+			case 0x05:
+				remainingData = 3
+
+			// 0110	48 Bit Integer
+			case 0x06:
+				remainingData = 5
+
+			// 0111	64 Bit Integer
+			case 0x07:
+				remainingData = 7
+
+			// 1000	Selection for Readout
+			case 0x08:
+				remainingData = 0
+
+			// 1001	2 digit BCD
+			case 0x09:
+				remainingData = 0
+				dData.RawValue = float64(BCDToInt(data[i : i+1]))
+
+			// 1010	4 digit BCD
+			case 0x0a:
+				remainingData = 1
+				dData.RawValue = float64(BCDToInt(data[i : i+2]))
+
+			// 1011	6 digit BCD
+			case 0x0b:
+				remainingData = 2
+				dData.RawValue = float64(BCDToInt(data[i : i+3]))
+
+			// 1100	8 digit BCD
+			case 0x0c:
+				remainingData = 3
+				dData.RawValue = float64(BCDToInt(data[i : i+4]))
+
+			// 1101	variable length
+			case 0x0d:
+				remainingData = 0 // TODO what here?
+
+			// 1110	12 digit BCD
+			case 0x0e:
+				remainingData = 5
+				dData.RawValue = float64(BCDToInt(data[i : i+6]))
+
+			// 1111	Special Functions
+			case 0x0f:
+				remainingData = 0 // TODO what here?
 			}
 			lookForData = false
 			dif = -1
+			vif = 0
+			vife = nil
+			fmt.Println("rawValue", dData.RawValue)
 			records = append(records, dData)
+			fmt.Println("")
 		}
 	}
 

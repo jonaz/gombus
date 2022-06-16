@@ -2,6 +2,7 @@ package gombus
 
 import (
 	"fmt"
+	"math"
 )
 
 const (
@@ -164,4 +165,55 @@ func DeviceTypeLookup(deviceType byte) (string, error) {
 	}
 
 	return "", fmt.Errorf("Unknown medium (0x%.2x)", deviceType)
+}
+
+func DecodeUnit(vif byte, vife []byte) VIF {
+	var code int
+
+	if vif == 0xFB {
+		code = int(vife[1])&DIB_VIF_WITHOUT_EXTENSION | 0x200
+	} else if vif == 0xFD {
+		code = int(vife[1])&DIB_VIF_WITHOUT_EXTENSION | 0x100
+	} else if vif == 0x7C {
+		// var unit string
+		// DecodeASCII(vib.Custom, &unit)
+		return VIF{
+			Exp: 1,
+			//Unit:        unit,
+			//Unit:        vib.Custom, //TODO here?
+			Type:        VIFUnit["VARIABLE_VIF"],
+			VIFUnitDesc: "",
+		}
+	} else if vif == 0xFC {
+		//  && (vib->vife[0] & 0x78) == 0x70
+
+		// Disable this for now as it is implicit
+		// from 0xFC
+		// if vif & vtf_ebm {}
+		code := vife[0] & DIB_VIF_WITHOUT_EXTENSION
+		var factor float64
+
+		if 0x70 <= code && code <= 0x77 {
+			factor = math.Pow10((int(vife[0]) & 0x07) - 6)
+		} else if 0x78 <= code && code <= 0x7B {
+			factor = math.Pow10((int(vife[0]) & 0x03) - 3)
+		} else if code == 0x7D {
+			// A bit unnecessary
+			factor = 1
+		}
+
+		return VIF{
+			Exp: factor,
+			//Unit:        vib.Custom, //TODO here
+			Type:        VIFUnit["VARIABLE_VIF"],
+			VIFUnitDesc: "",
+		}
+	} else {
+		code = int(vif) & DIB_VIF_WITHOUT_EXTENSION
+	}
+
+	fmt.Printf("vife raw is: % x\n", vife)
+	fmt.Printf("vif raw is: % x\n", vif)
+	fmt.Printf("vif code is: % x\n", code)
+	return VIFTable[code]
 }
