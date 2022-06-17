@@ -6,18 +6,20 @@ import (
 	"io"
 )
 
+/*
+// Does not handle timeout! the new one in tcp.go does
+// perhaps use io.ReadCloser and close after timeout?
 func ReadLongFrame(r io.Reader) (LongFrame, error) {
 	buf := bufio.NewReader(r)
-	// TODO must check the length of the frame since 0x16 can occur anywhere :S
-	// 68 LL LL 68
-	// The L field gives the quantity of the user data inputs plus 3 (for C,A,CI)
-	// AND add tests for this
+	// TODO if this should be used again must implement whole frame detection from conn.ReadLongFrame
 	msg, err := buf.ReadBytes(0x16)
 	if err != nil {
 		return nil, err
 	}
 	return LongFrame(msg), nil
 }
+*/
+
 func ReadSingleCharFrame(r io.Reader) (LongFrame, error) {
 	buf := bufio.NewReader(r)
 	msg, err := buf.ReadBytes(SingleCharacterFrame)

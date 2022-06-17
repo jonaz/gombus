@@ -147,9 +147,6 @@ func TestDecodeLongFrameGAROFirstFrame(t *testing.T) {
 	// spew.Dump(dFrame)
 }
 
-// TODO test this frame which has 0x16 in the middle. We must read the whole one.
-// 68 56 56 68 08 02 72 36 46 00 19 77 04 14 07 40 10 00 00 0C 78 36 46 00 19 0D 7C 08 44 49 20 2E 74 73 75 63 0A 20 20 20 20 20 20 20 20 20 20 04 6D 32 16 D0 26 02 7C 09 65 6D 69 74 20 2E 74 61 62 9A 10 04 13 75 68 03 00 04 93 7F 00 00 00 00 44 13 27 51 03 00 0F 00 00 1F A6 16
-
 func TestInt24ToInt(t *testing.T) {
 	// 03 13 15 31 00 Data block 1: unit 0, storage No 0, no tariff, instantaneous volume, 12565 l (24 bit integer)
 	d := []byte{0x15, 0x31, 0x0}

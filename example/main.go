@@ -45,7 +45,7 @@ func main() {
 		return
 	}
 
-	resp, err := gombus.ReadLongFrame(conn)
+	resp, err := conn.ReadLongFrame()
 	if err != nil {
 		logrus.Error(err)
 		return

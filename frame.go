@@ -36,52 +36,60 @@ func (sf ShortFrame) SetC(c uint8) {
 
 type LongFrame Frame
 
-func (cf LongFrame) SetChecksum() {
-	size := len(cf)
-	cf[size-2] = calcCheckSum(cf[4 : size-2])
+func (lf LongFrame) SetChecksum() {
+	size := len(lf)
+	lf[size-2] = calcCheckSum(lf[4 : size-2])
 }
 
-func (cf LongFrame) Length() {
-	cf[1] = byte(len(cf) - 6)
-	cf[2] = byte(len(cf) - 6)
+func (lf LongFrame) SetLength() {
+	lf[1] = byte(len(lf) - 6)
+	lf[2] = byte(len(lf) - 6)
 }
 
-func (cf LongFrame) L() int {
-	return int(cf[1])
+func (lf LongFrame) L() int {
+	return int(lf[1])
 }
 
-func (cf LongFrame) C() byte {
-	return cf[4]
+func (lf LongFrame) C() C {
+	return C(lf[4])
 }
 
-func (cf LongFrame) A() byte {
-	return cf[5]
-}
-func (cf LongFrame) CI() byte {
-	return cf[6]
+func (lf LongFrame) SetFCB() {
+	lf[4] |= CONTROL_MASK_FCB
 }
 
-func (cf LongFrame) Decode() (*DecodedFrame, error) {
-	if cf.CI() != 0x72 {
+func (lf LongFrame) SetFCV() {
+	lf[4] |= CONTROL_MASK_FCV
+}
+
+func (lf LongFrame) A() byte {
+	return lf[5]
+}
+func (lf LongFrame) CI() byte {
+	return lf[6]
+}
+
+func (lf LongFrame) Decode() (*DecodedFrame, error) {
+	if lf.CI() != 0x72 {
 		return nil, fmt.Errorf("unknown longframe, only supports variable data response for now")
 	}
 
-	man, err := cf.DecodeManufacturer()
+	man, err := lf.DecodeManufacturer()
 	if err != nil {
 		return nil, err
 	}
 
-	dr, err := cf.decodeData(cf[19 : len(cf)-2])
+	dr, err := lf.decodeData(lf[19 : len(lf)-2])
 	if err != nil {
 		return nil, err
 	}
-	dt, err := DeviceTypeLookup(cf[14])
+	dt, err := DeviceTypeLookup(lf[14])
 	if err != nil {
 		return nil, err
 	}
 
 	dFrame := &DecodedFrame{
-		SerialNumber: BCDToInt(cf[7:11]),
+		SerialNumber: BCDToInt(lf[7:11]),
 		Manufacturer: man,
 		ProductName:  "", // TODO
 		Version:      0,  // TODO
@@ -95,7 +103,7 @@ func (cf LongFrame) Decode() (*DecodedFrame, error) {
 	return dFrame, nil
 }
 
-func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
+func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 	records := make([]DecodedDataRecord, 0)
 
 	var dData DecodedDataRecord
@@ -116,6 +124,17 @@ func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 		}
 		// expect first one is a DIF
 		if dif == -1 {
+			// TODO handle special functions
+			// DIF	Function
+			// 0Fh	Start of manufacturer specific data structures to end of user data
+			// 1Fh	Same meaning as DIF = 0Fh + More records follow in next telegram
+			// 2Fh	Idle Filler (not to be interpreted), following byte = DIF
+			// 3Fh..6Fh	Reserved
+			// 7Fh	Global readout request (all storage#, units, tariffs, function fields)
+
+			// TODO FCB- and FCV-Bits and Addressing to read all frames
+			// REQ_UD2 C field: 01F11011 5B == FCB false, 7B == FCB true
+
 			dData = DecodedDataRecord{}
 			dif = int(v)
 			dData.Function = DecodeRecordFunction(v)
@@ -184,7 +203,7 @@ func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			// 0010	16 Bit Integer
 			case 0x02:
 				remainingData = 1
-				dData.RawValue = float64(binary.LittleEndian.Uint16(cf[11:13]))
+				dData.RawValue = float64(binary.LittleEndian.Uint16(lf[11:13]))
 				logrus.Debugf("data dif 0x02 is: % x\n", data[i:i+4])
 
 			// 0011	24 Bit Integer
@@ -240,6 +259,13 @@ func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 
 			// 1101	variable length
 			case 0x0d:
+				// With data field = 1101b several data types with variable length can be used. The length of the data is given with the first byte of data, which is here called LVAR.
+				// LVAR = 00h .. BFh : ASCII string with LVAR characters
+				// LVAR = C0h .. CFh : positive BCD number with (LVAR - C0h) · 2 digits
+				// LVAR = D0h .. DFH : negative BCD number with (LVAR - D0h) · 2 digits
+				// LVAR = E0h .. EFh : binary number with (LVAR - E0h) bytes
+				// LVAR = F0h .. FAh : floating point number with (LVAR - F0h) bytes [to be defined]
+				// LVAR = FBh .. FFh : Reserved
 				remainingData = 0 // TODO what here?
 
 			// 1110	12 digit BCD
@@ -265,8 +291,8 @@ func (cf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 	return records, nil
 }
 
-func (cf LongFrame) DecodeManufacturer() (string, error) {
-	id := int(binary.LittleEndian.Uint16(cf[11:13]))
+func (lf LongFrame) DecodeManufacturer() (string, error) {
+	id := int(binary.LittleEndian.Uint16(lf[11:13]))
 	return fmt.Sprintf(
 		"%c%c%c",
 		rune(((id>>10)&0x001F)+64),
@@ -311,3 +337,15 @@ type DecodedFrame struct {
 }
 
 const SingleCharacterFrame = 0xe5
+
+type C byte
+
+// FCB Frame Count-Bit.
+func (c C) FCB() bool {
+	return (c & CONTROL_MASK_FCB) > 0
+}
+
+// FCV Frame Count Valid indicates we want to use frame counting in the following request/responses.
+func (c C) FCV() bool {
+	return (c & CONTROL_MASK_FCV) > 0
+}

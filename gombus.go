@@ -35,7 +35,7 @@ func ApplicationReset(primaryID uint8) LongFrame {
 		0x16, // stop byte
 	}
 
-	data.Length()
+	data.SetLength()
 	data.SetChecksum()
 	return data
 }
@@ -103,7 +103,7 @@ func SetPrimaryUsingSecondary(secondary uint64, primary uint8) LongFrame {
 	data[9] = a[2]
 	data[10] = a[3]
 
-	data.Length()
+	data.SetLength()
 	data.SetChecksum()
 	return data
 }
@@ -124,7 +124,7 @@ func SetPrimaryUsingPrimary(oldPrimary uint8, newPrimary uint8) LongFrame {
 		0x16, // stop byte
 	}
 
-	data.Length()
+	data.SetLength()
 	data.SetChecksum()
 	return data
 }
@@ -182,6 +182,16 @@ func CheckKthBitSet(n, k int) bool {
 		return false
 	}
 	return true
+}
+
+// setBit set bits at pos. example 0000 pos 1 will be 0010.
+func setBit(n byte, pos uint) byte {
+	n |= (1 << pos)
+	return n
+}
+
+func setBitFromMask(b, mask byte) byte {
+	return b | mask
 }
 
 /*
