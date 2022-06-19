@@ -38,7 +38,7 @@ func TestReadLongFrame(t *testing.T) {
 	assert.NoError(t, err)
 
 	// water 1243 m2!
-	assert.Equal(t, 1143.0, dFrame.DataRecords[7].Value)
+	assert.Equal(t, 217.383, dFrame.DataRecords[6].Value)
 
 	// spew.Dump(dFrame)
 }

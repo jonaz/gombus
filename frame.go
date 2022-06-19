@@ -165,16 +165,18 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			// 3Fh..6Fh	Reserved
 			// 7Fh	Global readout request (all storage#, units, tariffs, function fields)
 
-			// TODO FCB- and FCV-Bits and Addressing to read all frames
-			// REQ_UD2 C field: 01F11011 5B == FCB false, 7B == FCB true
-
 			dData = DecodedDataRecord{}
 			dData.Function = DecodeRecordFunction(v)
 			dData.StorageNumber = int(v) & DATA_RECORD_DIF_MASK_STORAGE_NO
 
+			// 1Fh DONE Same meaning as DIF = 0Fh + More records follow in next telegram
 			if v == 0x1f {
 				dData.HasMoreRecords = true
 				records = append(records, dData)
+			}
+			// 2Fh  Idle Filler (not to be interpreted), following byte = DIF
+			if v == 0x2f {
+				continue
 			}
 
 			dif = int(v)
@@ -329,19 +331,22 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 				// LVAR = E0h .. EFh : binary number with (LVAR - E0h) bytes
 				// LVAR = F0h .. FAh : floating point number with (LVAR - F0h) bytes [to be defined]
 				// LVAR = FBh .. FFh : Reserved
-				remainingData = 0 // TODO what here?
 				size := 0
 				if data[i] <= 0xBF {
 					size = int(data[i])
 					dData.ValueString = DecodeASCII(data[i+1 : i+1+size])
 				} else if data[i] >= 0xC0 && data[i] <= 0xCF {
 					size = (int(data[i]) - 0xC0) * 2
+					// TODO data here
 				} else if data[i] >= 0xD0 && data[i] <= 0xDF {
 					size = (int(data[i]) - 0xD0) * 2
+					// TODO data here
 				} else if data[i] >= 0xE0 && data[i] <= 0xEF {
 					size = int(data[i]) - 0xE0
+					// TODO data here
 				} else if data[i] >= 0xF0 && data[i] <= 0xFA {
 					size = int(data[i]) - 0xF0
+					// TODO data here
 				}
 				remainingData = size
 
