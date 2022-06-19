@@ -34,6 +34,30 @@ func (sf ShortFrame) SetC(c uint8) {
 	sf[1] = c
 }
 
+func (sf ShortFrame) C() C {
+	return C(sf[1])
+}
+
+func (sf ShortFrame) SetFCB() {
+	sf[1] |= CONTROL_MASK_FCB
+}
+
+func (sf ShortFrame) SetFCV() {
+	sf[1] |= CONTROL_MASK_FCV
+}
+
+func (sf ShortFrame) ClearFCB() {
+	sf[1] &^= CONTROL_MASK_FCB
+}
+
+func (sf ShortFrame) ClearFCV() {
+	sf[1] &^= CONTROL_MASK_FCV
+}
+
+func (sf ShortFrame) A() byte {
+	return sf[2]
+}
+
 type LongFrame Frame
 
 func (lf LongFrame) SetChecksum() {
@@ -60,6 +84,14 @@ func (lf LongFrame) SetFCB() {
 
 func (lf LongFrame) SetFCV() {
 	lf[4] |= CONTROL_MASK_FCV
+}
+
+func (lf LongFrame) ClearFCB() {
+	lf[4] &^= CONTROL_MASK_FCB
+}
+
+func (lf LongFrame) ClearFCV() {
+	lf[4] &^= CONTROL_MASK_FCV
 }
 
 func (lf LongFrame) A() byte {
@@ -115,6 +147,7 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 	lookForVIF := false
 	lookForVIFE := false
 	remainingData := 0
+	customUnit := ""
 	var vife []byte
 	var vif byte
 	for i, v := range data {
@@ -124,10 +157,10 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 		}
 		// expect first one is a DIF
 		if dif == -1 {
-			// TODO handle special functions
+			// TODO handle special functionsFCB-
 			// DIF	Function
 			// 0Fh	Start of manufacturer specific data structures to end of user data
-			// 1Fh	Same meaning as DIF = 0Fh + More records follow in next telegram
+			// 1Fh DONE	Same meaning as DIF = 0Fh + More records follow in next telegram
 			// 2Fh	Idle Filler (not to be interpreted), following byte = DIF
 			// 3Fh..6Fh	Reserved
 			// 7Fh	Global readout request (all storage#, units, tariffs, function fields)
@@ -136,9 +169,15 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			// REQ_UD2 C field: 01F11011 5B == FCB false, 7B == FCB true
 
 			dData = DecodedDataRecord{}
-			dif = int(v)
 			dData.Function = DecodeRecordFunction(v)
 			dData.StorageNumber = int(v) & DATA_RECORD_DIF_MASK_STORAGE_NO
+
+			if v == 0x1f {
+				dData.HasMoreRecords = true
+				records = append(records, dData)
+			}
+
+			dif = int(v)
 			logrus.Debugf("dif is: % x\n", dif)
 			if CheckKthBitSet(int(v), 7) {
 				lookForDIFE = true
@@ -167,6 +206,17 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 				lookForVIFE = true
 				continue
 			}
+
+			// In case of VIF = 7Ch / FCh the true VIF is represented by the following ASCII string with the length given in the first byte
+			if vif == 0x7c {
+				l := int(data[i+1])
+				customUnit = DecodeASCII(data[i+2 : i+2+l])
+				remainingData = l + 1
+				lookForVIF = false
+				lookForData = true
+				continue
+			}
+
 			lookForVIF = false
 			lookForData = true
 			continue
@@ -184,12 +234,25 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 		}
 
 		if lookForData {
-			dData.Unit = DecodeUnit(vif, vife)
+			if customUnit != "" {
+				dData.Unit = VIF{
+					Exp:         1,
+					Unit:        customUnit,
+					Type:        VIFUnit["VARIABLE_VIF"],
+					VIFUnitDesc: "",
+				}
+				customUnit = ""
+			} else {
+				dData.Unit = DecodeUnit(vif, vife)
+			}
 			dData.StorageNumber = DecodeStorageNumber(dif, dife)
 			dData.Device = DecodeDevice(dif, dife)
 			dData.Tariff = DecodeTariff(dif, dife)
 
-			switch dif & DATA_RECORD_DIF_MASK_DATA {
+			difCoding := dif & DATA_RECORD_DIF_MASK_DATA
+			logrus.Debugf("Datarecord dif mask: %b ( %#x )", difCoding, difCoding)
+
+			switch difCoding {
 			// 0000	No data
 			case 0x00:
 				remainingData = 0
@@ -203,7 +266,7 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			// 0010	16 Bit Integer
 			case 0x02:
 				remainingData = 1
-				dData.RawValue = float64(binary.LittleEndian.Uint16(lf[11:13]))
+				dData.RawValue = float64(binary.LittleEndian.Uint16(data[i : i+2]))
 				logrus.Debugf("data dif 0x02 is: % x\n", data[i:i+4])
 
 			// 0011	24 Bit Integer
@@ -267,6 +330,20 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 				// LVAR = F0h .. FAh : floating point number with (LVAR - F0h) bytes [to be defined]
 				// LVAR = FBh .. FFh : Reserved
 				remainingData = 0 // TODO what here?
+				size := 0
+				if data[i] <= 0xBF {
+					size = int(data[i])
+					dData.ValueString = DecodeASCII(data[i+1 : i+1+size])
+				} else if data[i] >= 0xC0 && data[i] <= 0xCF {
+					size = (int(data[i]) - 0xC0) * 2
+				} else if data[i] >= 0xD0 && data[i] <= 0xDF {
+					size = (int(data[i]) - 0xD0) * 2
+				} else if data[i] >= 0xE0 && data[i] <= 0xEF {
+					size = int(data[i]) - 0xE0
+				} else if data[i] >= 0xF0 && data[i] <= 0xFA {
+					size = int(data[i]) - 0xF0
+				}
+				remainingData = size
 
 			// 1110	12 digit BCD
 			case 0x0e:
@@ -282,7 +359,8 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			dife = nil
 			vif = 0
 			vife = nil
-			logrus.Debug("rawValue", dData.RawValue)
+			logrus.Debug("rawValue: ", dData.RawValue)
+			logrus.Debug("valueString: ", dData.ValueString)
 			dData.Value = dData.Unit.Value(dData.RawValue)
 			records = append(records, dData)
 		}
@@ -316,6 +394,8 @@ type DecodedDataRecord struct {
 	Value       float64
 	ValueString string
 	RawValue    float64
+
+	HasMoreRecords bool
 }
 
 type DecodedFrame struct {
@@ -334,6 +414,13 @@ type DecodedFrame struct {
 	DataRecords []DecodedDataRecord
 
 	ParsedAt time.Time
+}
+
+func (df DecodedFrame) HasMoreRecords() bool {
+	if len(df.DataRecords) == 0 {
+		return false
+	}
+	return df.DataRecords[len(df.DataRecords)-1].HasMoreRecords
 }
 
 const SingleCharacterFrame = 0xe5

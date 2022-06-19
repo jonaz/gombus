@@ -145,6 +145,29 @@ func TestDecodeLongFrameGAROFirstFrame(t *testing.T) {
 
 	// fmt.Printf("%#v\n", dFrame)
 	// spew.Dump(dFrame)
+	assert.True(t, dFrame.HasMoreRecords())
+}
+func TestDecodeLongFrameItronFirstFrame(t *testing.T) {
+	s := `68 56 56 68 08 02 72 36 46 00 19 77 04 14 07 9d 10 00 00 0c 78 36 46 00 19 0d 7c 08 44 49 20 2e 74 73 75 63 0a 20 20 20 20 20 20 20 20 20 20 04 6d 35 14 d3 26 02 7c 09 65 6d 69 74 20 2e 74 61 62 97 10 04 13 01 6e 03 00 04 93 7f 00 00 00 00 44 13 27 51 03 00 0f 00 00 1f 96 16`
+	s = strings.ReplaceAll(s, " ", "")
+	data, err := hex.DecodeString(s)
+	assert.NoError(t, err)
+
+	frame := LongFrame(data)
+
+	fmt.Println(frame)
+	dFrame, err := frame.Decode()
+	assert.NoError(t, err)
+	assert.Equal(t, 19004636, dFrame.SerialNumber)
+
+	// fmt.Printf("%#v\n", dFrame)
+	// spew.Dump(dFrame)
+	fmt.Println("number of records: ", len(dFrame.DataRecords))
+	assert.True(t, dFrame.HasMoreRecords())
+	assert.Len(t, dFrame.DataRecords, 9)
+	assert.Equal(t, 217383.0, dFrame.DataRecords[6].RawValue)
+	assert.Equal(t, "bat. time", dFrame.DataRecords[3].Unit.Unit)
+	assert.Equal(t, "cust. ID", dFrame.DataRecords[1].Unit.Unit)
 }
 
 func TestInt24ToInt(t *testing.T) {

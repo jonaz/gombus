@@ -25,34 +25,34 @@ func Dial(addr string) (*Conn, error) {
 	return &Conn{conn: conn}, nil
 }
 
-func (c Conn) Read(b []byte) (n int, err error) {
-	return c.Read(b)
+func (c *Conn) Read(b []byte) (n int, err error) {
+	return c.conn.Read(b)
 }
-func (c Conn) Write(b []byte) (n int, err error) {
+func (c *Conn) Write(b []byte) (n int, err error) {
 	return c.conn.Write(b)
 }
-func (c Conn) Close() error {
+func (c *Conn) Close() error {
 	return c.conn.Close()
 }
-func (c Conn) LocalAddr() net.Addr {
+func (c *Conn) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
 }
-func (c Conn) RemoteAddr() net.Addr {
+func (c *Conn) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
-func (c Conn) SetDeadline(t time.Time) error {
+func (c *Conn) SetDeadline(t time.Time) error {
 	return c.conn.SetDeadline(t)
 }
-func (c Conn) SetReadDeadline(t time.Time) error {
+func (c *Conn) SetReadDeadline(t time.Time) error {
 	return c.conn.SetReadDeadline(t)
 }
-func (c Conn) SetWriteDeadline(t time.Time) error {
+func (c *Conn) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
 }
 
 var ErrNoLongFrameFound = fmt.Errorf("no long frame found")
 
-func (c Conn) ReadLongFrame() (LongFrame, error) {
+func (c *Conn) ReadLongFrame() (LongFrame, error) {
 	buf := make([]byte, 4096)
 	tmp := make([]byte, 4096)
 

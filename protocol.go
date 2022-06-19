@@ -181,16 +181,7 @@ func DecodeUnit(vif byte, vife []byte) VIF {
 		code = int(vife[0])&DIB_VIF_WITHOUT_EXTENSION | 0x200
 	} else if vif == 0xFD {
 		code = int(vife[0])&DIB_VIF_WITHOUT_EXTENSION | 0x100
-	} else if vif == 0x7C {
-		// var unit string
-		// DecodeASCII(vib.Custom, &unit)
-		return VIF{
-			Exp: 1,
-			//Unit:        unit,
-			//Unit:        vib.Custom, //TODO here?
-			Type:        VIFUnit["VARIABLE_VIF"],
-			VIFUnitDesc: "",
-		}
+		// } else if vif == 0x7C {  // handled in frame.go
 	} else if vif == 0xFC {
 		code := vife[0] & DIB_VIF_WITHOUT_EXTENSION
 		var factor float64
@@ -255,4 +246,12 @@ func DecodeDevice(dif int, dife []byte) int {
 	}
 
 	return result
+}
+
+func DecodeASCII(data []byte) string {
+	s := ""
+	for i := len(data) - 1; i >= 0; i-- {
+		s += fmt.Sprintf("%c", data[i])
+	}
+	return s
 }
