@@ -1,8 +1,8 @@
 package gombus
 
 import (
-	"encoding/binary"
 	"fmt"
+	"time"
 )
 
 func RequestUD2(primaryID uint8) ShortFrame {
@@ -41,8 +41,8 @@ func ApplicationReset(primaryID uint8) LongFrame {
 }
 
 // water meter has 19004636 7704 14 07.
-func SendUD2() Frame {
-	data := []byte{
+func SendUD2() LongFrame {
+	data := LongFrame{
 		0x68, // Start byte long/control
 		0x00, // length
 		0x00, // length
@@ -68,7 +68,8 @@ func SendUD2() Frame {
 		0x16, // stop byte
 	}
 
-	data[15] = calcCheckSum(data[7:15])
+	data.SetLength()
+	data.SetChecksum()
 
 	return data
 }
@@ -97,7 +98,7 @@ func SetPrimaryUsingSecondary(secondary uint64, primary uint8) LongFrame {
 		0x16, // stop byte
 	}
 
-	a := UintToBCD(secondary, 4)
+	a := uintToBCD(secondary, 4)
 	data[7] = a[0]
 	data[8] = a[1]
 	data[9] = a[2]
@@ -129,82 +130,73 @@ func SetPrimaryUsingPrimary(oldPrimary uint8, newPrimary uint8) LongFrame {
 	return data
 }
 
-func calcCheckSum(data []byte) byte {
-	var res byte
-	for _, v := range data {
-		res += v
+// ReadAllFrames supports FCB and reads out all frames from the device using primaryID.
+func ReadAllFrames(conn *Conn, primaryID int) ([]*DecodedFrame, error) {
+	frame := SndNKE(uint8(primaryID))
+	fmt.Printf("sending nke: % x\n", frame)
+	_, err := conn.Write(frame)
+	if err != nil {
+		return nil, err
 	}
-	return res & 0xff
-}
 
-func UintToBCD(value uint64, size int) []byte {
-	buf := make([]byte, size)
-	if value > 0 {
-		remainder := value
-		for pos := size - 1; pos >= 0 && remainder > 0; pos-- {
-			tail := byte(remainder % 100)
-			hi, lo := tail/10, tail%10
-			buf[size-1-pos] = hi<<4 + lo
-			remainder /= 100
+	err = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if err != nil {
+		return nil, err
+	}
+	_, err = ReadSingleCharFrame(conn)
+	if err != nil {
+		return nil, err
+	}
+
+	frames := []*DecodedFrame{}
+	respFrame := &DecodedFrame{}
+	lastFCB := true
+	frameCnt := 0
+	for respFrame.HasMoreRecords() || frameCnt == 0 {
+		frameCnt++
+		frame = RequestUD2(uint8(primaryID))
+		if !lastFCB {
+			frame.SetFCB()
+			frame.SetChecksum()
 		}
+		lastFCB = frame.C().FCB()
+
+		_, err = conn.Write(frame)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := conn.ReadLongFrame()
+		if err != nil {
+			return nil, err
+		}
+
+		respFrame, err = resp.Decode()
+		if err != nil {
+			return nil, err
+		}
+		frames = append(frames, respFrame)
 	}
-	return buf
+
+	return frames, nil
 }
 
-func BCDToInt(bcd []byte) int {
-	var i = 0
-	size := len(bcd)
-	for k := range bcd {
-		r0 := bcd[size-1-k] & 0xf
-		r1 := bcd[size-1-k] >> 4 & 0xf
-		r := r1*10 + r0
-		i = i*100 + int(r)
+// ReadSingleFrame reads one frame from the device. Does not reset device before asking.
+func ReadSingleFrame(conn *Conn, primaryID int) (*DecodedFrame, error) {
+	frame := RequestUD2(uint8(primaryID))
+	if _, err := conn.Write(frame); err != nil {
+		return nil, err
 	}
-	return i
-}
 
-// if data fields is 0100 == 32 bit integer.
-func Int32ToInt(data []byte) (int, error) {
-	if len(data) != 4 {
-		return 0.0, fmt.Errorf("wrong data length")
+	resp, err := conn.ReadLongFrame()
+	if err != nil {
+		return nil, err
 	}
-	i := binary.LittleEndian.Uint32(data)
-	return int(i), nil
-}
 
-func Int24ToInt(b []byte) int {
-	_ = b[2] // bounds check hint to compiler; see golang.org/issue/14808
-	return int(uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16)
-}
-
-func CheckKthBitSet(n, k int) bool {
-	if n&(1<<(k)) == 0 {
-		return false
+	respFrame, err := resp.Decode()
+	if err != nil {
+		return nil, err
 	}
-	return true
-}
 
-// setBit set bits at pos. example 0000 pos 1 will be 0010.
-func setBit(n byte, pos uint) byte {
-	n |= (1 << pos)
-	return n
+	return respFrame, nil
 }
-
-func setBitFromMask(b, mask byte) byte {
-	return b | mask
-}
-
-/*
-
-func AsRoundedFloat(data []byte) (float64, error) {
-	// this works OK according to protocol example:
-	// Extract temperature 21,8
-	// 0000   3d 05 00 d3 5e ae 41 67 3e
-	if len(data) != 4 {
-		return 0.0, fmt.Errorf("could not pase float from binary")
-	}
-	bits := binary.LittleEndian.Uint32(data)
-	float := float64(math.Float32frombits(bits))
-	return math.Round(float*100) / 100, nil
-}
-*/

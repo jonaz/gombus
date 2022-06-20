@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 
 func TestToBCD(t *testing.T) {
 	// facit: 78 56 34 12 identification number = 12345678
-	s := fmt.Sprintf("% x", UintToBCD(12345678, 4))
+	s := fmt.Sprintf("% x", uintToBCD(12345678, 4))
 	assert.Equal(t, "78 56 34 12", s)
 }
 func TestFromBCD(t *testing.T) {
@@ -27,15 +27,15 @@ func TestFromBCD(t *testing.T) {
 	h, err := hex.DecodeString("78563412")
 	assert.NoError(t, err)
 
-	i := BCDToInt(h)
+	i := bcdToInt(h)
 	assert.Equal(t, 12345678, i)
 }
 
 func TestCheckKthBitSet(t *testing.T) {
-	assert.True(t, CheckKthBitSet(0x80, 7))
-	assert.False(t, CheckKthBitSet(0xf, 7))
-	assert.False(t, CheckKthBitSet(0x2a, 7))
-	assert.True(t, CheckKthBitSet(0x40, 6))
+	assert.True(t, checkKthBitSet(0x80, 7))
+	assert.False(t, checkKthBitSet(0xf, 7))
+	assert.False(t, checkKthBitSet(0x2a, 7))
+	assert.True(t, checkKthBitSet(0x40, 6))
 }
 
 func TestPrimaryUsingSecondary(t *testing.T) {
@@ -122,7 +122,6 @@ func TestDecodeLongFrameGAROSecondFrame(t *testing.T) {
 
 	frame := LongFrame(data)
 
-	fmt.Println(frame)
 	dFrame, err := frame.Decode()
 	assert.NoError(t, err)
 	assert.Equal(t, 90072114, dFrame.SerialNumber)
@@ -137,8 +136,6 @@ func TestDecodeLongFrameGAROFirstFrame(t *testing.T) {
 	assert.NoError(t, err)
 
 	frame := LongFrame(data)
-
-	fmt.Println(frame)
 	dFrame, err := frame.Decode()
 	assert.NoError(t, err)
 	assert.Equal(t, 90072114, dFrame.SerialNumber)
@@ -154,8 +151,6 @@ func TestDecodeLongFrameItronFirstFrame(t *testing.T) {
 	assert.NoError(t, err)
 
 	frame := LongFrame(data)
-
-	fmt.Println(frame)
 	dFrame, err := frame.Decode()
 	assert.NoError(t, err)
 	assert.Equal(t, 19004636, dFrame.SerialNumber)
@@ -170,10 +165,10 @@ func TestDecodeLongFrameItronFirstFrame(t *testing.T) {
 	assert.Equal(t, "cust. ID", dFrame.DataRecords[1].Unit.Unit)
 }
 
-func TestInt24ToInt(t *testing.T) {
+func Testnnt24ToInt(t *testing.T) {
 	// 03 13 15 31 00 Data block 1: unit 0, storage No 0, no tariff, instantaneous volume, 12565 l (24 bit integer)
 	d := []byte{0x15, 0x31, 0x0}
-	res := Int24ToInt(d)
+	res := int24ToInt(d)
 	assert.Equal(t, 12565, res)
 }
 

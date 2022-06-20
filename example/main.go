@@ -38,7 +38,6 @@ func main() {
 
 	// frame := gombus.SetPrimaryUsingPrimary(0, 3)
 	respFrame := &gombus.DecodedFrame{}
-
 	lastFCB := true
 	frames := 0
 	for respFrame.HasMoreRecords() || frames == 0 {

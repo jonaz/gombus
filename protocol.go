@@ -1,6 +1,7 @@
 package gombus
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 
@@ -72,7 +73,7 @@ const (
 	CONTROL_MASK_FCV = 0x10
 )
 
-func DecodeRecordFunction(dif byte) string {
+func decodeRecordFunction(dif byte) string {
 	switch dif & DATA_RECORD_DIF_MASK_FUNCTION {
 	case 0x00:
 		return "Instantaneous value"
@@ -87,7 +88,7 @@ func DecodeRecordFunction(dif byte) string {
 	}
 }
 
-func DeviceTypeLookup(deviceType byte) (string, error) {
+func deviceTypeLookup(deviceType byte) (string, error) {
 	switch deviceType {
 	case VARIABLE_DATA_MEDIUM_OTHER:
 		return "Other", nil
@@ -172,7 +173,7 @@ func DeviceTypeLookup(deviceType byte) (string, error) {
 	return "", fmt.Errorf("Unknown medium (0x%.2x)", deviceType)
 }
 
-func DecodeUnit(vif byte, vife []byte) VIF {
+func decodeUnit(vif byte, vife []byte) Unit {
 	var code int
 
 	logrus.Debugf("vif raw is: % x\n", vif)
@@ -194,7 +195,7 @@ func DecodeUnit(vif byte, vife []byte) VIF {
 			factor = 1000
 		}
 
-		return VIF{
+		return Unit{
 			Exp: factor,
 			//Unit:        vib.Custom, //TODO here
 			Type:        VIFUnit["VARIABLE_VIF"],
@@ -205,9 +206,9 @@ func DecodeUnit(vif byte, vife []byte) VIF {
 	}
 
 	logrus.Debugf("vif code is: % x\n", code)
-	return VIFTable[code]
+	return unitTable[code]
 }
-func DecodeStorageNumber(dif int, dife []byte) int {
+func decodeStorageNumber(dif int, dife []byte) int {
 	bitIndex := 0
 	result := 0
 
@@ -223,7 +224,7 @@ func DecodeStorageNumber(dif int, dife []byte) int {
 	return result
 }
 
-func DecodeTariff(dif int, dife []byte) int {
+func decodeTariff(dif int, dife []byte) int {
 	bitIndex := 0
 	result := 0
 	size := len(dife)
@@ -235,7 +236,7 @@ func DecodeTariff(dif int, dife []byte) int {
 	return result
 }
 
-func DecodeDevice(dif int, dife []byte) int {
+func decodeDevice(dif int, dife []byte) int {
 	bitIndex := 0
 	result := 0
 
@@ -248,10 +249,75 @@ func DecodeDevice(dif int, dife []byte) int {
 	return result
 }
 
-func DecodeASCII(data []byte) string {
+func decodeASCII(data []byte) string {
 	s := ""
 	for i := len(data) - 1; i >= 0; i-- {
 		s += fmt.Sprintf("%c", data[i])
 	}
 	return s
+}
+
+func uintToBCD(value uint64, size int) []byte {
+	buf := make([]byte, size)
+	if value > 0 {
+		remainder := value
+		for pos := size - 1; pos >= 0 && remainder > 0; pos-- {
+			tail := byte(remainder % 100)
+			hi, lo := tail/10, tail%10
+			buf[size-1-pos] = hi<<4 + lo
+			remainder /= 100
+		}
+	}
+	return buf
+}
+
+func bcdToInt(bcd []byte) int {
+	var i = 0
+	size := len(bcd)
+	for k := range bcd {
+		r0 := bcd[size-1-k] & 0xf
+		r1 := bcd[size-1-k] >> 4 & 0xf
+		r := r1*10 + r0
+		i = i*100 + int(r)
+	}
+	return i
+}
+
+// if data fields is 0100 == 32 bit integer.
+func int32ToInt(data []byte) (int, error) {
+	if len(data) != 4 {
+		return 0.0, fmt.Errorf("wrong data length")
+	}
+	i := binary.LittleEndian.Uint32(data)
+	return int(i), nil
+}
+
+func int24ToInt(b []byte) int {
+	_ = b[2] // bounds check hint to compiler; see golang.org/issue/14808
+	return int(uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16)
+}
+
+func checkKthBitSet(n, k int) bool {
+	if n&(1<<(k)) == 0 {
+		return false
+	}
+	return true
+}
+
+// setBit set bits at pos. example 0000 pos 1 will be 0010.
+func setBit(n byte, pos uint) byte {
+	n |= (1 << pos)
+	return n
+}
+
+func setBitFromMask(b, mask byte) byte {
+	return b | mask
+}
+
+func calcCheckSum(data []byte) byte {
+	var res byte
+	for _, v := range data {
+		res += v
+	}
+	return res & 0xff
 }
