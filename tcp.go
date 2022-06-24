@@ -48,6 +48,10 @@ func (c *Conn) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
 }
 
+func (c *Conn) Conn() net.Conn {
+	return c.conn
+}
+
 var ErrNoLongFrameFound = fmt.Errorf("no long frame found")
 
 func (c *Conn) ReadLongFrame() (LongFrame, error) {
