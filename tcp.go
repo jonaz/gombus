@@ -2,9 +2,7 @@ package gombus
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"net"
 	"time"
 )
@@ -67,15 +65,16 @@ func (c *Conn) ReadLongFrame() (LongFrame, error) {
 
 		n, err := c.conn.Read(tmp)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
 			return LongFrame{}, fmt.Errorf("error reading from tcp connection: %w", err)
 		}
 
 		for _, b := range tmp[:n] {
 			globalN++
 			buf[globalN] = b
+
+			if globalN > 256 {
+				return LongFrame{}, ErrNoLongFrameFound
+			}
 
 			// look for end byte after length +C+A+CI+checksum
 			if length != 0 && globalN > length+4 && b == 0x16 {
@@ -88,6 +87,4 @@ func (c *Conn) ReadLongFrame() (LongFrame, error) {
 			}
 		}
 	}
-
-	return LongFrame{}, ErrNoLongFrameFound
 }

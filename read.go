@@ -35,9 +35,7 @@ func ReadAnyAndPrint(r io.Reader) error {
 	for {
 		n, err := r.Read(tmp)
 		if err != nil {
-			if err != io.EOF {
-				return err
-			}
+			return err
 		}
 		fmt.Printf("% x\n", tmp[:n])
 	}
