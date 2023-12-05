@@ -17,7 +17,7 @@ func TestReadLongFrame(t *testing.T) {
 	assert.NoError(t, err)
 
 	server, client := net.Pipe()
-	conn := Conn{conn: client}
+	conn := &conn{conn: client}
 	go func() {
 		// Do some stuff
 		for _, d := range data {
@@ -28,7 +28,7 @@ func TestReadLongFrame(t *testing.T) {
 		server.Close()
 	}()
 
-	frame, err := conn.ReadLongFrame()
+	frame, err := ReadLongFrame(conn)
 	assert.NoError(t, err)
 
 	// make sure we read the whole frame correctly!
