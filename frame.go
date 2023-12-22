@@ -2,7 +2,9 @@ package gombus
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -120,11 +122,14 @@ func (lf LongFrame) Decode() (*DecodedFrame, error) {
 		return nil, err
 	}
 
+	version := int(lf[13])
+
 	dFrame := &DecodedFrame{
+		raw:          lf,
 		SerialNumber: bcdToInt(lf[7:11]),
 		Manufacturer: man,
 		ProductName:  "", // TODO
-		Version:      0,  // TODO
+		Version:      version,
 		DeviceType:   dt,
 		AccessNumber: 0, // TODO
 		Signature:    0, // TODO
@@ -401,6 +406,7 @@ type DecodedDataRecord struct {
 }
 
 type DecodedFrame struct {
+	raw          []byte
 	SerialNumber int
 	Manufacturer string
 	ProductName  string
@@ -423,6 +429,14 @@ func (df DecodedFrame) HasMoreRecords() bool {
 		return false
 	}
 	return df.DataRecords[len(df.DataRecords)-1].HasMoreRecords
+}
+
+func (df DecodedFrame) SecondaryAddressString() string {
+	// 4 bytes being the device ID (serial #)
+	// 2 bytes being the manufacturer’s identifier
+	// 1 byte being the device version
+	// 1 byte being the device media
+	return strconv.Itoa(df.SerialNumber) + hex.EncodeToString(df.raw[11:14])
 }
 
 const SingleCharacterFrame = 0xe5
