@@ -11,7 +11,7 @@ type conn struct {
 	conn net.Conn
 }
 
-func Dial(addr string) (Conn, error) {
+func DialTCP(addr string) (Conn, error) {
 	var dialer net.Dialer
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
 	defer cancel()

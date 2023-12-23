@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -420,8 +419,6 @@ type DecodedFrame struct {
 	// ReadableStatus string // TODO make function on struct!
 
 	DataRecords []DecodedDataRecord
-
-	ParsedAt time.Time
 }
 
 func (df DecodedFrame) HasMoreRecords() bool {
