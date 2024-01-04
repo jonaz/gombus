@@ -1,6 +1,8 @@
 package gombus
 
-import serial "github.com/jonaz/serial"
+import (
+	serial "github.com/jonaz/serial"
+)
 
 func DialSerial(device string) (Conn, error) {
 	// 2400, Even, 8, 1, None

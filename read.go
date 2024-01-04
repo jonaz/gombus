@@ -38,7 +38,7 @@ func ReadLongFrame(conn Conn) (LongFrame, error) {
 
 		n, err := conn.Read(tmp)
 		if err != nil {
-			return LongFrame{}, fmt.Errorf("error reading from tcp connection: %w", err)
+			return LongFrame{}, fmt.Errorf("error reading from connection: %w", err)
 		}
 
 		for _, b := range tmp[:n] {

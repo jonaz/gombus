@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/jonaz/serial v0.0.0-20231223183840-b4f3281331f0
+	github.com/jonaz/serial v0.0.0-20240104211900-cac2ee15ec1f
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.2
 )
