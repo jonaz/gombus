@@ -16,7 +16,7 @@ func main() {
 
 	// logrus.SetLevel(logrus.DebugLevel)
 
-	conn, err := gombus.Dial("192.168.13.42:10001")
+	conn, err := gombus.DialTCP("192.168.13.42:10001")
 	if err != nil {
 		logrus.Error(err)
 		return

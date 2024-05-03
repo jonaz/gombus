@@ -176,8 +176,8 @@ func deviceTypeLookup(deviceType byte) (string, error) {
 func decodeUnit(vif byte, vife []byte) Unit {
 	var code int
 
-	logrus.Debugf("vif raw is: % x\n", vif)
-	logrus.Debugf("vife raw is: % x\n", vife)
+	logrus.Tracef("vif raw is: % x\n", vif)
+	logrus.Tracef("vife raw is: % x\n", vife)
 	if vif == 0xFB {
 		code = int(vife[0])&DIB_VIF_WITHOUT_EXTENSION | 0x200
 	} else if vif == 0xFD {
@@ -205,7 +205,7 @@ func decodeUnit(vif byte, vife []byte) Unit {
 		code = int(vif) & DIB_VIF_WITHOUT_EXTENSION
 	}
 
-	logrus.Debugf("vif code is: % x\n", code)
+	logrus.Tracef("vif code is: % x\n", code)
 	return unitTable[code]
 }
 func decodeStorageNumber(dif int, dife []byte) int {

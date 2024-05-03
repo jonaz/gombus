@@ -181,7 +181,7 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			}
 
 			dif = int(v)
-			logrus.Debugf("dif is: % x\n", dif)
+			logrus.Tracef("dif is: % x\n", dif)
 			if checkKthBitSet(int(v), 7) {
 				lookForDIFE = true
 				continue
@@ -253,7 +253,7 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			dData.Tariff = decodeTariff(dif, dife)
 
 			difCoding := dif & DATA_RECORD_DIF_MASK_DATA
-			logrus.Debugf("Datarecord dif mask: %b ( %#x )", difCoding, difCoding)
+			logrus.Tracef("Datarecord dif mask: %b ( %#x )", difCoding, difCoding)
 
 			switch difCoding {
 			// 0000	No data
@@ -264,13 +264,13 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			case 0x01:
 				remainingData = 0
 				dData.RawValue = float64(data[i])
-				logrus.Debugf("data dif 0x01 is: % x\n", data[i])
+				logrus.Tracef("data dif 0x01 is: % x\n", data[i])
 
 			// 0010	16 Bit Integer
 			case 0x02:
 				remainingData = 1
 				dData.RawValue = float64(binary.LittleEndian.Uint16(data[i : i+2]))
-				logrus.Debugf("data dif 0x02 is: % x\n", data[i:i+4])
+				logrus.Tracef("data dif 0x02 is: % x\n", data[i:i+4])
 
 			// 0011	24 Bit Integer
 			case 0x03:
@@ -279,7 +279,7 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			// 4 byte (32 bit)
 			case 0x04:
 				remainingData = 3
-				logrus.Debugf("data dif 0x04 is: % x\n", data[i:i+4])
+				logrus.Tracef("data dif 0x04 is: % x\n", data[i:i+4])
 				v, err := int32ToInt(data[i : i+4])
 				if err != nil {
 					return nil, err
@@ -365,8 +365,8 @@ func (lf LongFrame) decodeData(data []byte) ([]DecodedDataRecord, error) {
 			dife = nil
 			vif = 0
 			vife = nil
-			logrus.Debug("rawValue: ", dData.RawValue)
-			logrus.Debug("valueString: ", dData.ValueString)
+			logrus.Trace("rawValue: ", dData.RawValue)
+			logrus.Trace("valueString: ", dData.ValueString)
 			dData.Value = dData.Unit.Value(dData.RawValue)
 			records = append(records, dData)
 		}
